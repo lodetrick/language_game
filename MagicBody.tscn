@@ -1,0 +1,17 @@
+[gd_scene load_steps=2 format=3 uid="uid://kok5th5jmg52"]
+
+[sub_resource type="CSharpScript" id="CSharpScript_vwbwh"]
+script/source = "using Godot;
+using System;
+
+public partial class MagicBody : RigidBody2D
+{
+}
+"
+
+[node name="MagicBody" type="RigidBody2D"]
+collision_layer = 4
+collision_mask = 4
+script = SubResource("CSharpScript_vwbwh")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
