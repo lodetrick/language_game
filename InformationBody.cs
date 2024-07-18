@@ -7,7 +7,7 @@ public class InformationBody
 	static int MAX_CONTAIN_RECURSION = 3;
 	static float COLLISION_IMPACT_PERCENTAGE = 0.20f;
 
-	private MaterialTemplate _currentMaterial;
+	private Material.MaterialTemplate _currentMaterial;
 	private MagicBody _physicsHook;
 
 	private float _manaEarth, _manaWater, _manaAir, _manaFire, _manaTotal, _density;
@@ -99,11 +99,85 @@ public class InformationBody
 		return _shape;
 	}
 
-	public void CalculateInteraction(InformationBody other, float relativeMomenta)
+	private void CalculateInteractionBurst(InformationBody other, float relativeMomenta, float thisShapeModifier, float otherShapeModifier)
 	{
 		// First, find the relative kinetic mana. This tells how hard these two bumped into each other
-
 		// Compare instability, two strengths, etc to decide what to do for collisions
+
+		if (_stability * thisShapeModifier <= relativeMomenta) {
+			// TODO: This Bursts
+		}
+
+		if (other._stability * otherShapeModifier <= relativeMomenta) {
+			// TODO: Other bursts
+		}
+	}
+
+	private void CalculateInteractionFlammable(InformationBody other)
+	{
+		// Check flammability
+		if (other._manaFire * other._manaTotal >= _currentMaterial.GetCombustionManaNeeded()) {
+			// TODO: This combusts
+		}
+
+		if (_manaFire * _manaTotal >= other._currentMaterial.GetCombustionManaNeeded()) {
+			// TODO: Other combusts
+		}
+	}
+
+	private void CalculateInteractionDamage(InformationBody other, float thisShapeModifier, float otherShapeModifier, float totalManaLoss)
+	{
+		// Damages Each other, need to make sure this keeps the density the same (they shrink)
+		// Total Percentage that we want to lose: COLLISION_IMPACT_PERCENTAGE * relativeMomenta
+		// thisChipMana : otherChipMana - ratio of this percentage loss to other percentage loss
+		float thisChipMana = _currentMaterial.GetCohesiveness() / thisShapeModifier;
+		float otherChipMana = other._currentMaterial.GetCohesiveness() / otherShapeModifier;
+
+		// TODO: Need to make this a safe subtraction, isopycnal (preserving density, so area decreases)
+
+		// Should give bonus damage if the object is destroyed
+		// If the damage is too small it should be ignored entirely, material dependent
+		// How to deal with knockback? What about gases?
+		_manaTotal -= (thisChipMana / (thisChipMana + otherChipMana)) * totalManaLoss;
+		other._manaTotal -= (otherChipMana / (thisChipMana + otherChipMana)) * totalManaLoss;
+	}
+
+	private void CalculateInteractionReaction(InformationBody other, Material.Reaction reaction, float totalManaLoss)
+	{
+		// Perform Reaction, We got the ratios, we just need to know how much to create
+		// Find the ratios for each body
+		float thisRatio, otherRatio, thisManaLoss, otherManaLoss, resultantManaGain;
+		if ((int)_currentMaterial.MATERIAL_ID < (int)other._currentMaterial.MATERIAL_ID) {
+			thisRatio = reaction.ratioL; otherRatio = reaction.ratioH;
+		}
+		else {
+			thisRatio = reaction.ratioH; otherRatio = reaction.ratioL;
+		}
+
+		// Determine Limiting Reactant, then Find the mana values for all three objects
+		if (_manaTotal / thisRatio <= other._manaTotal / otherRatio) {
+			// This is limiting reactant
+			thisManaLoss = Mathf.Clamp(thisRatio / (thisRatio + otherRatio) * totalManaLoss, 0.0f, _manaTotal);
+			otherManaLoss = otherRatio / thisRatio * thisManaLoss;
+			resultantManaGain = reaction.ratioR / thisRatio * thisManaLoss;
+		}
+		else {
+			// Other is limiting reactant
+			otherManaLoss = Mathf.Clamp(otherRatio / (thisRatio + otherRatio) * totalManaLoss, 0.0f, other._manaTotal);
+			thisManaLoss = otherManaLoss * thisRatio / otherRatio;
+			resultantManaGain = otherManaLoss * reaction.ratioR / otherRatio;
+		}
+
+		// Perform Reaction with mana loss levels:
+		// TODO: Add Physics for Reactions
+		_manaTotal -= thisManaLoss;
+		other._manaTotal -= otherManaLoss;
+		// create new body with the reactant
+	}
+
+	// This function and its helpers are what I'm going to be modifying the most of on the physics side.
+	public void CalculateInteraction(InformationBody other, float relativeMomenta)
+	{
 		float thisShapeModifier = 1.0f, otherShapeModifier = 1.0f; // Multiplicative Identity; Does nothing
 
 		// Based on Kinetic Energy, we determine a defender and attacker
@@ -118,70 +192,18 @@ public class InformationBody
 			otherShapeModifier = Shape.attackModifiers[(int)other._trueShape];
 		}
 
-		if (_stability * thisShapeModifier <= relativeMomenta) {
-			// TODO: This Bursts
-		}
-
-		if (other._stability * otherShapeModifier <= relativeMomenta) {
-			// TODO: Other bursts
-		}
-
-		// Check flammability
-		if (other._manaFire * other._manaTotal >= _currentMaterial.GetCombustionManaNeeded()) {
-			// TODO: This combusts
-		}
-
-		if (_manaFire * _manaTotal >= other._currentMaterial.GetCombustionManaNeeded()) {
-			// TODO: Other combusts
-		}
+		CalculateInteractionBurst(other, relativeMomenta, thisShapeModifier, otherShapeModifier);
+		CalculateInteractionFlammable(other);
 
 		// Check for reactions
 		float totalManaLoss = 0.5f * (_manaTotal + other._manaTotal) * COLLISION_IMPACT_PERCENTAGE * relativeMomenta;
 		Material.Reaction reaction = Material.GetReaction(_currentMaterial.MATERIAL_ID, other._currentMaterial.MATERIAL_ID);
 		if (reaction.result == Material.Types.None) {
-			// Damages Each other, need to make sure this keeps the density the same (they shrink)
-			// Total Percentage that we want to lose: COLLISION_IMPACT_PERCENTAGE * relativeMomenta
-			// thisChipMana : otherChipMana - ratio of this percentage loss to other percentage loss
-			float thisChipMana = _currentMaterial.GetCohesiveness() / thisShapeModifier;
-			float otherChipMana = other._currentMaterial.GetCohesiveness() / otherShapeModifier;
-
-			// TODO: Need to make this a safe subtraction, isopycnal (preserving density, so area decreases)
-
-			// Should give bonus damage if the object is destroyed
-			_manaTotal -= (thisChipMana / (thisChipMana + otherChipMana)) * totalManaLoss;
-			other._manaTotal -= (otherChipMana / (thisChipMana + otherChipMana)) * totalManaLoss;
+			// Don't want to do this if either is a gas, if one is a gas then turn the damage into knockback
+			CalculateInteractionDamage(other, thisShapeModifier, otherShapeModifier, totalManaLoss);
 		}
 		else {
-			// Perform Reaction, We got the ratios, we just need to know how much to create
-			// Find the ratios for each body
-			float thisRatio, otherRatio, thisManaLoss, otherManaLoss, resultantManaGain;
-			if ((int)_currentMaterial.MATERIAL_ID < (int)other._currentMaterial.MATERIAL_ID) {
-				thisRatio = reaction.ratioL; otherRatio = reaction.ratioH;
-			}
-			else {
-				thisRatio = reaction.ratioH; otherRatio = reaction.ratioL;
-			}
-
-			// Determine Limiting Reactant, then Find the mana values for all three objects
-			if (_manaTotal / thisRatio <= other._manaTotal / otherRatio) {
-				// This is limiting reactant
-				thisManaLoss = Mathf.Clamp(thisRatio / (thisRatio + otherRatio) * totalManaLoss, 0.0f, _manaTotal);
-				otherManaLoss = otherRatio / thisRatio * thisManaLoss;
-				resultantManaGain = reaction.ratioR / thisRatio * thisManaLoss;
-			}
-			else {
-				// Other is limiting reactant
-				otherManaLoss = Mathf.Clamp(otherRatio / (thisRatio + otherRatio) * totalManaLoss, 0.0f, other._manaTotal);
-				thisManaLoss = otherManaLoss * thisRatio / otherRatio;
-				resultantManaGain = otherManaLoss * reaction.ratioR / otherRatio;
-			}
-
-			// Perform Reaction with mana loss levels:
-			// TODO: Add Physics for Reactions
-			_manaTotal -= thisManaLoss;
-			other._manaTotal -= otherManaLoss;
-			// create new body with the reactant
-			
+			CalculateInteractionReaction(other, reaction, totalManaLoss);
 		}
 	}
 
