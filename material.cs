@@ -1,6 +1,6 @@
 public abstract class MaterialTemplate {
 	public InformationBody _information { get; set; } // THIS BETTER BE A POINTER
-	public static Material.Types MATERIAL_ID { get; private set; } // Identifying number, unique for each material type
+	public Material.Types MATERIAL_ID { get; private set; } // Identifying number, unique for each material type
 
 	public MaterialTemplate(InformationBody information) {
 		this._information = information;

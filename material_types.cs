@@ -1,30 +1,57 @@
+using System;
+
 public static class Material {
-	class Reaction {
-		Types result; // Resultant Type
-		ushort ratioL; // Ratio of lower number
-		ushort ratioH; // Ratio of higher number
-		ushort ratioR; // Ratio of resultant
+	public class Reaction {
+		public Types result; // Resultant Type
+		public ushort ratioL; // Ratio of lower number
+		public ushort ratioH; // Ratio of higher number
+		public ushort ratioR; // Ratio of resultant
+
+		public Reaction() {
+			result = Types.None;
+			ratioL = ratioH = ratioR = 0;
+		}
+
+		public Reaction(Types type, ushort L, ushort H, ushort R) {
+			result = type;
+			ratioL = L;
+			ratioH = H;
+			ratioR = R;
+		}
 	}
 
 	public enum Types : ushort {
-		None = 0x0000,
-		Water = 0x0001,
-		Fire = 0x0002,
-		Earth = 0x0004,
-		Air = 0x0008,
-		Glass = 0x0010,
-		Oil = 0x0020,
-		Wood = 0x0040,
-		Smoke = 0x0080,
-		Steam = 0x0100,
-		Iron = 0x0200,
-		Dust = 0x0400,
-		Clay = 0x0800,
-		Gold = 0x1000,
-		Flesh = 0x2000,
-		Ice = 0x4000,
-		Slag = 0x8000,
+		Water,
+		Fire,
+		Earth,
+		Air,
+		Glass,
+		Oil,
+		Wood,
+		Smoke,
+		Steam,
+		Iron,
+		Dust,
+		Clay,
+		Gold,
+		Flesh,
+		Ice,
+		Slag,
+		None,
 	}
 
-	
+	static Reaction[,] reactions = new Reaction[16,16];
+
+	static Material() {
+		for (int i = 0; i < 16; i++) {
+			for (int j = 0; j < 16; j++) {
+				reactions[i,j] = new Reaction();
+			}
+		}
+		reactions[0,1] = new Reaction(Types.Steam, 1, 2, 3); // Water and Fire produce Steam
+	}
+
+	public static Reaction GetReaction(Types lhs, Types rhs) {
+		return reactions[Math.Min((int)lhs, (int)rhs),Math.Max((int)lhs, (int)rhs)];
+	}
 }

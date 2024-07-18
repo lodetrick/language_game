@@ -27,6 +27,7 @@ public class InformationBody
 		// if containing: update 
 		if (_shape == Shape.Types.Container && _contained != null) {
 			_contained.UpdatePhysicalProperties(speedSquared, currentArea);
+			// TODO: Do something bad if the trycontain fails
 			TryContain();
 		}
 	}
@@ -86,6 +87,7 @@ public class InformationBody
 	{
 		_shape = newShape;
 		_trueShape = GetTrueShape();
+		// TODO: Do something bad when trycontain fails
 		return TryContain(contain);
 	}
 
@@ -100,14 +102,12 @@ public class InformationBody
 	public void CalculateInteraction(InformationBody other, float relativeMomenta)
 	{
 		// First, find the relative kinetic mana. This tells how hard these two bumped into each other
-		// We pass that in as an input
-		// Call this function once per interaction
 
 		// Compare instability, two strengths, etc to decide what to do for collisions
 		float thisShapeModifier = 1.0f, otherShapeModifier = 1.0f; // Multiplicative Identity; Does nothing
 
 		// Based on Kinetic Energy, we determine a defender and attacker
-		if (this._manaKinetic >= other._manaKinetic) {
+		if (_manaKinetic >= other._manaKinetic) {
 			// This is attacker
 			thisShapeModifier = Shape.attackModifiers[(int)_trueShape];
 			otherShapeModifier = Shape.defenseModifiers[(int)other._trueShape];
@@ -119,35 +119,70 @@ public class InformationBody
 		}
 
 		if (_stability * thisShapeModifier <= relativeMomenta) {
-			// This Bursts
+			// TODO: This Bursts
 		}
 
 		if (other._stability * otherShapeModifier <= relativeMomenta) {
-			// Other bursts
+			// TODO: Other bursts
 		}
 
 		// Check flammability
 		if (other._manaFire * other._manaTotal >= _currentMaterial.GetCombustionManaNeeded()) {
-			// This combusts
+			// TODO: This combusts
 		}
 
 		if (_manaFire * _manaTotal >= other._currentMaterial.GetCombustionManaNeeded()) {
-			// Other combusts
+			// TODO: Other combusts
 		}
 
 		// Check for reactions
+		float totalManaLoss = 0.5f * (_manaTotal + other._manaTotal) * COLLISION_IMPACT_PERCENTAGE * relativeMomenta;
+		Material.Reaction reaction = Material.GetReaction(_currentMaterial.MATERIAL_ID, other._currentMaterial.MATERIAL_ID);
+		if (reaction.result == Material.Types.None) {
+			// Damages Each other, need to make sure this keeps the density the same (they shrink)
+			// Total Percentage that we want to lose: COLLISION_IMPACT_PERCENTAGE * relativeMomenta
+			// thisChipMana : otherChipMana - ratio of this percentage loss to other percentage loss
+			float thisChipMana = _currentMaterial.GetCohesiveness() / thisShapeModifier;
+			float otherChipMana = other._currentMaterial.GetCohesiveness() / otherShapeModifier;
 
-		// Damages Each other, need to make sure this keeps the density the same (they shrink)
-		// Ratio
-		float thisChipMana = _currentMaterial.GetCohesiveness() / thisShapeModifier;
-		float otherChipMana = other._currentMaterial.GetCohesiveness() / otherShapeModifier;
+			// TODO: Need to make this a safe subtraction, isopycnal (preserving density, so area decreases)
 
-		// Total Percentage that we want to lose: COLLISION_IMPACT_PERCENTAGE * relativeMomenta
-		// thisChipMana : otherChipMana - ratio of this percentage loss to other percentage loss
+			// Should give bonus damage if the object is destroyed
+			_manaTotal -= (thisChipMana / (thisChipMana + otherChipMana)) * totalManaLoss;
+			other._manaTotal -= (otherChipMana / (thisChipMana + otherChipMana)) * totalManaLoss;
+		}
+		else {
+			// Perform Reaction, We got the ratios, we just need to know how much to create
+			// Find the ratios for each body
+			float thisRatio, otherRatio, thisManaLoss, otherManaLoss, resultantManaGain;
+			if ((int)_currentMaterial.MATERIAL_ID < (int)other._currentMaterial.MATERIAL_ID) {
+				thisRatio = reaction.ratioL; otherRatio = reaction.ratioH;
+			}
+			else {
+				thisRatio = reaction.ratioH; otherRatio = reaction.ratioL;
+			}
 
-		// FOR LATER: Need to make this a safe subtraction, isopycnal (preserving density, so area decreases)
-		_manaTotal -= _manaTotal * (thisChipMana / (thisChipMana + otherChipMana)) * COLLISION_IMPACT_PERCENTAGE * relativeMomenta;
-		other._manaTotal -= other._manaTotal * (otherChipMana / (thisChipMana + otherChipMana)) * COLLISION_IMPACT_PERCENTAGE * relativeMomenta;
+			// Determine Limiting Reactant, then Find the mana values for all three objects
+			if (_manaTotal / thisRatio <= other._manaTotal / otherRatio) {
+				// This is limiting reactant
+				thisManaLoss = Mathf.Clamp(thisRatio / (thisRatio + otherRatio) * totalManaLoss, 0.0f, _manaTotal);
+				otherManaLoss = otherRatio / thisRatio * thisManaLoss;
+				resultantManaGain = reaction.ratioR / thisRatio * thisManaLoss;
+			}
+			else {
+				// Other is limiting reactant
+				otherManaLoss = Mathf.Clamp(otherRatio / (thisRatio + otherRatio) * totalManaLoss, 0.0f, other._manaTotal);
+				thisManaLoss = otherManaLoss * thisRatio / otherRatio;
+				resultantManaGain = otherManaLoss * reaction.ratioR / otherRatio;
+			}
+
+			// Perform Reaction with mana loss levels:
+			// TODO: Add Physics for Reactions
+			_manaTotal -= thisManaLoss;
+			other._manaTotal -= otherManaLoss;
+			// create new body with the reactant
+			
+		}
 	}
 
 	// private void ContainerBurst() {} // Simulate the bursting of a container. Perhaps should be on physics side?
