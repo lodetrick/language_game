@@ -59,24 +59,39 @@ public static class Material {
 		public InformationBody _information { get; set; } // THIS BETTER BE A POINTER
 		public Material.Types MATERIAL_ID { get; private set; } // Identifying number, unique for each material type
 
-		public MaterialTemplate(InformationBody information) {
-			this._information = information;
-		}
-
 		// Flammability
-		public abstract float GetCombustionManaNeeded(); // When the material starts to burn, total mana (not percentage)
-		public abstract MaterialTemplate GetCombustionProducts();
+		public float GetCombustionManaNeeded() { return 1000; } // When the material starts to burn, total mana (not percentage)
+		public MaterialTemplate GetCombustionProducts() { return new Water(); }
 
 		// Phase Changes
-		public abstract (float, MaterialTemplate) GetPhaseChange();
+		// public abstract (float, MaterialTemplate) GetPhaseChange();
 
 		// Combat Attributes
-		public abstract float GetCompressionFactor(); // How much compressive pressure the material can hold before breaking
-		public abstract float GetExpansionFactor(); // How much expansive pressure the material can hold before breaking
-		public abstract float GetCohesiveness(); // Coefficient for amount of mana to lose when hitting something
+		public float GetCompressionFactor() { return 10; } // How much compressive pressure the material can hold before breaking
+		public float GetExpansionFactor() { return 10; } // How much expansive pressure the material can hold before breaking
+		public float GetCohesiveness() { return 10; } // Coefficient for amount of mana to lose when hitting something
 
 		// Desired Density
-		public abstract float GetDesiredDensity();
-		public abstract float GetDensityCoefficient();
+		public float GetDesiredDensity() { return 1.0f; }
+		public float GetDensityCoefficient() { return 1.0f; }
 	}
+
+    public class Water : MaterialTemplate
+    {
+        // Flammability
+        // public override float GetCombustionManaNeeded() {} // When the material starts to burn, total mana (not percentage)
+		// public override MaterialTemplate GetCombustionProducts() {}
+
+		// // Phase Changes
+		// // public override (float, MaterialTemplate) GetPhaseChange() {}
+
+		// // Combat Attributes
+		// public override float GetCompressionFactor() {} // How much compressive pressure the material can hold before breaking
+		// public override float GetExpansionFactor() {} // How much expansive pressure the material can hold before breaking
+		// public override float GetCohesiveness() {} // Coefficient for amount of mana to lose when hitting something
+
+		// // Desired Density
+		// public override float GetDesiredDensity() {}
+		// public override float GetDensityCoefficient() {}
+    }
 }
