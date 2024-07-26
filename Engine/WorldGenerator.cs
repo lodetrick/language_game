@@ -4,14 +4,17 @@ using Godot;
 public partial class WorldGenerator
 {
 	private static FastNoiseLite _noise;
+	private static RandomNumberGenerator _random;
 	public static int seed = 7842923;
 	public static int spacing = 5; // Spacing between recorded values of the heightmap
+	public static int granularity = 4;
 
 	static WorldGenerator() {
 		_noise = new FastNoiseLite() {
 			Seed = seed,
 			NoiseType = FastNoiseLite.NoiseTypeEnum.Perlin,
 		};
+		_random = new RandomNumberGenerator();
 	}
 
 	// public static int[] GenerateHeightmap(int seed, int left, int right)
@@ -54,26 +57,20 @@ public partial class WorldGenerator
 
 	private static float[] GetSurfaceLevels(int chunkPos, int granularity)
 	{
-		// granularity: How many subdivisions per chunk
-		float[] surface = new float[granularity + 4];
-
-		surface[0] = GetSurfaceHeight(chunkPos - 1f / granularity);
+		float[] surface = new float[granularity + 1];
 
 		for (int i = 0; i < granularity; i++) {
-			surface[i + 1] = GetSurfaceHeight(chunkPos + i / (float)granularity);
+			surface[i] = GetSurfaceHeight(chunkPos + i / (float)granularity);
 		}
 
-		surface[granularity + 1] = GetSurfaceHeight(1 + chunkPos);
-		surface[granularity + 2] = GetSurfaceHeight(1 + chunkPos + 1f / granularity);
-		surface[granularity + 3] = GetSurfaceHeight(1 + chunkPos + 2f / granularity);
+		surface[granularity] = GetSurfaceHeight(1 + chunkPos);
 
 		return surface;
-		// return [
-		// 	(_noise.GetNoise1D(chunkPos - 1)),
-		// 	(_noise.GetNoise1D(chunkPos    )),
-		// 	(_noise.GetNoise1D(chunkPos + 1)),
-		// 	(_noise.GetNoise1D(chunkPos + 2)),
-		// ];
+	}
+
+	private static float RandomCentered(float range)
+	{
+		return _random.RandfRange(-range,range);
 	}
 
 	public static Chunk GenerateChunk(Vector2I position)
@@ -84,31 +81,43 @@ public partial class WorldGenerator
 		// If it is one of the top chunks, then make it grass with some pebbles, maybe trees?
 		// If it's above one of the top chunks, then just make it a bunch of air.
 
+		// If there were no changes made to the chunk, I don't want to store it
+
 		Chunk chunk = new Chunk() {
 			Position = Chunk.size * position
 		};
 
-		int granularity = 4;
 		float[] surfaceLevel = GetSurfaceLevels(position.X, granularity);
+		_random.Seed = (ulong)(seed + position.X * 223 + position.Y);
 		
 		for (int i = 0; i < Chunk.size; i++) {
 			float weight = (float)granularity * i / Chunk.size;
 			int subdivision = Mathf.FloorToInt(weight);
-			// float surface = 1000 * Mathf.CubicInterpolate(surfaceLevel[subdivision + 1], surfaceLevel[subdivision + 2],
-			// 											  surfaceLevel[subdivision    ], surfaceLevel[subdivision + 3],
-			// 											  weight - subdivision);
+			float surface = 1000 * Mathf.Lerp(surfaceLevel[subdivision], surfaceLevel[subdivision + 1], weight - subdivision);
 
-			// Lerping is basically the exact same as the cubic
-			float surface = 1000 * Mathf.Lerp(surfaceLevel[subdivision + 1], surfaceLevel[subdivision + 2], weight - subdivision);
+			int grassHeight = _random.RandiRange(3,4);
+			int grassPosition = _random.RandiRange(0,1);
+			Color grassColor = new Color(RandomCentered(0.08f),RandomCentered(0.08f),RandomCentered(0.08f));
 
 			for (int j = 0; j < Chunk.size; j++) {
-				if (j + Chunk.size * position.Y > surface) {
-					chunk.SetPixelLocal(new Vector2I(i, j), new Pixel(Colors.LawnGreen));
+				float distance = j + Chunk.size * position.Y - surface;
+				float randomValue = _random.RandfRange(0,1);
+
+				if ((distance - 25) > 10 * randomValue) {
+					chunk.SetPixelLocal(new Vector2I(i, j), new Pixel(Colors.SlateGray));
 				}
-				else {
-					chunk.SetPixelLocal(new Vector2I(i, j), new Pixel(Colors.SkyBlue));
+				else if (distance > grassPosition + grassHeight) {
+					chunk.SetPixelLocal(new Vector2I(i, j), new Pixel(Colors.SaddleBrown));
+				}
+				else if (distance > grassPosition) {
+					chunk.SetPixelLocal(new Vector2I(i, j), new Pixel(Colors.ForestGreen + grassColor));
 				}
 			}
+		}
+
+		if (!chunk._imageUpdated) {
+			// Chunk is only air, don't want to add it
+			return null;
 		}
 		
 		return chunk;

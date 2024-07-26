@@ -61,8 +61,12 @@ public partial class World : Node2D
 				Vector2I position = new Vector2I(i, j)  + newChunks.Position;
 				if (!intersection.HasPoint(position)) {
 					// Create new Chunk
-					chunkStorage[position] = WorldGenerator.GenerateChunk(position);
-					AddChild(chunkStorage[position]);
+					Chunk chunk = WorldGenerator.GenerateChunk(position);
+
+					if (chunk != null) {
+						chunkStorage[position] = chunk;
+						AddChild(chunk);
+					}
 				}
 			}
 		}
@@ -73,8 +77,10 @@ public partial class World : Node2D
 				Vector2I position = new Vector2I(i, j) + _loadedChunks.Position;
 				if (!intersection.HasPoint(position)) {
 					// Remove Old Chunk
-					chunkStorage[position].QueueFree();
-					chunkStorage.Remove(position);
+					if (chunkStorage.ContainsKey(position)) {
+						chunkStorage[position].QueueFree();
+						chunkStorage.Remove(position);
+					}
 				}
 			}
 		}

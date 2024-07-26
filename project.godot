@@ -45,3 +45,7 @@ right={
 
 2d_physics/layer_1="Player"
 2d_physics/layer_3="Magic"
+
+[rendering]
+
+environment/defaults/default_clear_color=Color(0.529412, 0.807843, 0.921569, 1)

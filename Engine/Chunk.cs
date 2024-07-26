@@ -9,14 +9,14 @@ public partial class Chunk : Sprite2D
 	public static int size = 32;
 	public Pixel[] pixels;
 	private Image _image;
-	private bool _imageUpdated;
+	public bool _imageUpdated {get; private set;}
 
 	public Chunk()
 	{
 		pixels = new Pixel[size * size];
 		_image = Image.Create(size,size,false,Image.Format.Rgba8);
-		_image.Fill(new Color(1,0,0));
 		Texture = ImageTexture.CreateFromImage(_image);
+		_imageUpdated = false;
 		Centered = false;
 		ShowBehindParent = true;
 	}
