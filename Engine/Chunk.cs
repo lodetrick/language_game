@@ -10,15 +10,18 @@ public partial class Chunk : Sprite2D
 	public Pixel[] pixels;
 	private Image _image;
 	public bool _imageUpdated {get; private set;}
+	private Rect2 bounding;
 
-	public Chunk()
+	public Chunk(Vector2 pos)
 	{
+		Position = pos;
 		pixels = new Pixel[size * size];
 		_image = Image.Create(size,size,false,Image.Format.Rgba8);
 		Texture = ImageTexture.CreateFromImage(_image);
 		_imageUpdated = false;
 		Centered = false;
 		ShowBehindParent = true;
+		bounding = new Rect2(0, 0, size, size);
 	}
 
     public override void _Ready()
@@ -39,6 +42,11 @@ public partial class Chunk : Sprite2D
 	public void SetPixel(Vector2I global, Pixel pixel)
 	{
 		Vector2I local = GlobalToLocal(global);
+		
+		if (!bounding.HasPoint(local)) {
+			return;
+		}
+
 		int index = LocalToIndex(local);
 
 		pixels[index] = pixel;

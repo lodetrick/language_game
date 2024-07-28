@@ -1,18 +1,19 @@
+using System.Collections.Generic;
 using Godot;
 using Godot.Collections;
 
 public partial class World : Node2D
 {
-	public Dictionary<Vector2I,Chunk> chunkStorage;
+	public Godot.Collections.Dictionary<Vector2I,Chunk> chunkStorage;
+	public Stack<Chunk> chunkPool;
 	private Vector2 _cameraSize;
 	private Camera2D _cam;
-
 	private Vector2I _currChunk;
 	private Rect2I _loadedChunks;
 
     public override void _Ready()
     {
-		chunkStorage = new Dictionary<Vector2I, Chunk>();
+		chunkStorage = new Godot.Collections.Dictionary<Vector2I, Chunk>();
 		_cameraSize = GetCanvasTransform().AffineInverse().BasisXform(GetViewportRect().Size) * 1.2f;
 		_cam = GetParent().GetNode<Camera2D>("Camera2D");
 		Vector2 cameraTopLeft = _cam.GetScreenCenterPosition() - _cameraSize / 2;
@@ -53,7 +54,24 @@ public partial class World : Node2D
 
 	private void LoadChunks(Rect2I newChunks)
 	{
+		// TODO: Implement Chunk Pooling, Possibly research RenderingServer
+		// Chunk Pooling: Never deallocate, instead move the chunk to a new position and reassign data
+		// Perhaps have a stack of chunks in the pool (because will never have all of them allocated at once due to air chunks)
 		Rect2I intersection = newChunks.Intersection(_loadedChunks);
+
+		// loop through old chunks to remove
+		for (int i = 0; i < _loadedChunks.Size.X; i++) {
+			for (int j = 0; j < _loadedChunks.Size.Y; j++) {
+				Vector2I position = new Vector2I(i, j) + _loadedChunks.Position;
+				if (!intersection.HasPoint(position)) {
+					// Remove Old Chunk
+					if (chunkStorage.ContainsKey(position)) {
+						chunkStorage[position].QueueFree();
+						chunkStorage.Remove(position);
+					}
+				}
+			}
+		}
 
 		// loop through next chunks to add
 		for (int i = 0; i < newChunks.Size.X; i++) {
@@ -66,20 +84,6 @@ public partial class World : Node2D
 					if (chunk != null) {
 						chunkStorage[position] = chunk;
 						AddChild(chunk);
-					}
-				}
-			}
-		}
-
-		// loop through old chunks to remove
-		for (int i = 0; i < _loadedChunks.Size.X; i++) {
-			for (int j = 0; j < _loadedChunks.Size.Y; j++) {
-				Vector2I position = new Vector2I(i, j) + _loadedChunks.Position;
-				if (!intersection.HasPoint(position)) {
-					// Remove Old Chunk
-					if (chunkStorage.ContainsKey(position)) {
-						chunkStorage[position].QueueFree();
-						chunkStorage.Remove(position);
 					}
 				}
 			}
