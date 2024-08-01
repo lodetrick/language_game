@@ -6,6 +6,8 @@ public partial class WorldGenerator
 {
 	private static FastNoiseLite _noise, _dispNoise;
 	private static RandomNumberGenerator _random, _randomX;
+
+	private static readonly MaterialState[] materialStates;
 	private static Curve rockFrequency;
 	public static int seed = 7842923;
 	public static int spacing = 5; // Spacing between recorded values of the heightmap
@@ -25,6 +27,24 @@ public partial class WorldGenerator
 		_randomX = new RandomNumberGenerator();
 		rockFrequency = GD.Load<Curve>("res://Procedural/RockFrequency.tres");
 
+		materialStates = new MaterialState[17];
+		materialStates[0] = new WaterMat();
+		materialStates[1] = new FireMat();
+		materialStates[2] = new EarthMat();
+		materialStates[3] = new AirMat();
+		materialStates[4] = new GlassMat();
+		materialStates[5] = new OilMat();
+		materialStates[6] = new WoodMat();
+		materialStates[7] = new SmokeMat();
+		materialStates[8] = new SteamMat();
+		materialStates[9] = new IronMat();
+		materialStates[10] = new DustMat();
+		materialStates[11] = new StoneMat();
+		materialStates[12] = new GoldMat();
+		materialStates[13] = new FleshMat();
+		materialStates[14] = new IceMat();
+		materialStates[15] = new SlagMat();
+		materialStates[16] = new PlantMat();
 	}
 
 	// public static int[] GenerateHeightmap(int seed, int left, int right)
@@ -102,26 +122,18 @@ public partial class WorldGenerator
 		// First vec is the origin, rest are destinations
 		// Maybe have the width render based on the direction (vec pointing up means horizontal line)
 		// Calculate when to shrink the branch, based on needing to be at one at the very last destination
-		
-		// Vector2 totalDirection = directions[0] - directions[directions.Count - 1];
-		// float totalLength = Mathf.Max(Mathf.Abs(totalDirection.X), Mathf.Abs(totalDirection.Y));
 
-		float totalLength = 0;
-		for (int i = 0; i < directions.Count - 1; i++) {
-			totalLength += (directions[i + 1] - directions[i]).Length();
+		float length, totalLength = 0, currIter = 0;
+		for (int i = 1; i < directions.Count; i++) {
+			totalLength += (directions[i] - directions[i - 1]).Length();
 		}
 
-
+		Vector2I trunkDir;
 		Vector2 pos = directions[0];
 
-		// width formula: width * (1 - x / length)
-
-		int totalIters = 0;
 		for (int i = 1; i < directions.Count; i++) {
 			Vector2 direction = directions[i] - directions[i - 1];
 
-			float length;
-			Vector2I trunkDir;
 			if (Mathf.Abs(direction.X) > Mathf.Abs(direction.Y)) {
 				length = Mathf.Abs(direction.X);
 				trunkDir = Vector2I.Down;
@@ -132,29 +144,23 @@ public partial class WorldGenerator
 			}
 
 			for (int j = 0; j < length; j++) {
-				// place the pixels
-
-				int currentWidth = Mathf.CeilToInt(width * (1 - totalIters / totalLength));
-
-				chunk.SetPixel((Vector2I)pos, new Pixel(Colors.Azure));
+				// width formula: width * (1 - x / length)
+				int currentWidth = Mathf.CeilToInt(width * (1 - currIter / totalLength));
 
 				Vector2I dir = (Vector2I)pos - Mathf.CeilToInt(currentWidth / 2) * trunkDir;
-				GD.Print(dir, trunkDir);
 				
 				for (int w = 0; w < currentWidth; w++) {
-					chunk.SetPixel(dir + w * trunkDir, new Pixel(Colors.Burlywood));
+					chunk.SetPixel(dir + w * trunkDir, new Pixel(Colors.Burlywood, materialStates[6]));
 				}
 
 				// After, increment the position
 				pos += direction / length;
-				totalIters++;
+				currIter++;
 			}
-			// currentPosition = directions[i];
-			chunk.SetPixel((Vector2I)directions[i], new Pixel(Colors.Red));
 		}
 	}
 
-	public static Chunk GenerateChunk(Vector2I position)
+	public static bool GenerateChunk(ref Chunk chunk, Vector2I position)
 	{
 		// First, find out what the ground level is (in terms of chunks), this should be pregenerated within the save file
 		// Then, determine how many chunks beneath that this is. Find out the level of detail and what biome this is
@@ -163,8 +169,13 @@ public partial class WorldGenerator
 		// If it's above one of the top chunks, then just make it a bunch of air.
 
 		// If there were no changes made to the chunk, I don't want to store it
+		if (position.Y > 2) {
+			return false;
+		}
 
-		Chunk chunk = new Chunk(Chunk.size * position);
+		Array<Vector2> array = [new Vector2(0,0), new Vector2(3, -30), new Vector2(-3,-60), new Vector2(-10, -80)];
+
+		GenerateBranch(chunk, array, 5);
 
 		float[] surfaceLevel = GetSurfaceLevels(position.X, granularity);
 		_random.Seed = (ulong)(seed + position.X * 223 + position.Y);
@@ -173,7 +184,7 @@ public partial class WorldGenerator
 		for (int i = 0; i < Chunk.size; i++) {
 			float weight = (float)granularity * i / Chunk.size;
 			int subdivision = Mathf.FloorToInt(weight);
-			float surface = 1000 * Mathf.Lerp(surfaceLevel[subdivision], surfaceLevel[subdivision + 1], weight - subdivision);
+			float surface = 500 * Mathf.Lerp(surfaceLevel[subdivision], surfaceLevel[subdivision + 1], weight - subdivision);
 
 			float randomNoiseX = (1 + _dispNoise.GetNoise1D(chunk.Position.X + i)) / 2;
 
@@ -183,36 +194,73 @@ public partial class WorldGenerator
 			int grassPosition = _randomX.RandiRange(-2,0);
 
 			for (int j = 0; j < Chunk.size; j++) {
-				float distance = j + Chunk.size * position.Y - surface;
+				float height = j + Chunk.size * position.Y;
+				float distance = height - surface;
 				float randomValue = _random.RandfRange(0,1);
 				float randomNoise = (1 + _dispNoise.GetNoise2D(chunk.Position.X + i, chunk.Position.Y + j)) / 2;
 
 				if (distance > 0 && randomNoise > rockFrequency.SampleBaked(distance / 60)) {
-					chunk.SetPixelLocal(new Vector2I(i, j), new Pixel(Colors.SlateGray.Darkened(randomValue / 10)));
+					Pixel p = new Pixel(Colors.SlateGray.Darkened(randomValue / 10), materialStates[11]);
+					chunk.SetPixelLocal(new Vector2I(i, j), p);
 				}
-				// TODO: Fix Grass generating under dirt (This succeeds but above that it doesn't)
+				// TODO: Fix Grass generating under dirt (This succeeds but above that it doesn't) Probably fixed?
 				else if (grassPosition > distance && distance > grassPosition - grassHeight) {
-					chunk.SetPixelLocal(new Vector2I(i, j), new Pixel(Colors.ForestGreen.Lightened(randomX / 5)));
+					Pixel p = new Pixel(Colors.ForestGreen.Lightened(randomX / 5), materialStates[16]);
+					chunk.SetPixelLocal(new Vector2I(i, j), p);
 				}
 				else if (distance > grassPosition) {
-					chunk.SetPixelLocal(new Vector2I(i, j), new Pixel(Colors.SaddleBrown.Lightened(randomValue / 10)));
+					Pixel p = new Pixel(Colors.SaddleBrown.Lightened(randomValue / 10), materialStates[2]);
+					chunk.SetPixelLocal(new Vector2I(i, j), p);
 				}
-				if (Mathf.Abs(distance) < 0.5f) {
-					// chunk.SetPixelLocal(new Vector2I(i, j), new Pixel(Colors.OrangeRed));
-				}
+				// if (Mathf.Abs(distance) < 0.5f) {
+				// 	chunk.SetPixelLocal(new Vector2I(i, j), new Pixel(Colors.OrangeRed));
+				// }
 			}
 		}
-		
-		Array<Vector2> array = [new Vector2(0,0), new Vector2(3, -30), new Vector2(-3,-60), new Vector2(-30, -80)];
-
-		GenerateBranch(chunk, array, 5);
-
 
 		if (!chunk._imageUpdated) {
 			// Chunk is only air, don't want to add it
-			return null;
+			return false;
 		}
+
+		chunk.Position = Chunk.size * position;
 		
-		return chunk;
+		return true;
+	}
+
+	public static void GenerateColumn(World world, int pos) {
+		// Find the surface levels
+		float[] surfaceLevel = new float[Chunk.size];
+
+		for (int i = 0; i < Chunk.size; i++) {
+			surfaceLevel[i] = GetSurfaceHeight(pos + i / (float)Chunk.size);
+		}
+
+		// Determine what wide structures are trying to spawn here
+		
+		// Village
+	}
+
+	public static void GenerateWorld(World world, Rect2I chunkBounds)
+	{
+		// First Pass: Generate general shape of land
+		for (int i = 0; i < chunkBounds.Size.X; i++) {
+			for (int j = 0; j < chunkBounds.Size.Y; j++) {
+				Vector2I chunkPos = chunkBounds.Position + new Vector2I(i,j);
+
+				Chunk chunk = new Chunk();
+				if (GenerateChunk(ref chunk, chunkPos)) {
+					world.chunkStorage[chunkPos] = chunk;
+					world.AddChild(chunk);
+				}
+				else {
+					world.chunkPool.Add(chunk);
+				}
+			}
+		}
+
+		// Second Pass: Caves?
+
+		// Third Pass: Generate everything (grass, trees, rocks, etc) on the surface
 	}
 }

@@ -1,3 +1,4 @@
+/*
 using Godot;
 using System;
 using System.ComponentModel.DataAnnotations;
@@ -229,3 +230,4 @@ public static class Shape {
 	public readonly static float[] attackModifiers = [1,1,1,1.0f,1];
 	public readonly static float[] defenseModifiers = [1,1,1,1.0f,1];
 }
+*/

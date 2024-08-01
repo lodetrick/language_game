@@ -6,18 +6,26 @@ using Godot.Collections;
 
 public partial class Chunk : Sprite2D
 {
-	public static int size = 32;
+	public static int size = 128;
 	public Pixel[] pixels;
 	private Image _image;
+	private Bitmap _bitmap;
+	private int numAirTiles = size * size;
 	public bool _imageUpdated {get; private set;}
 	private Rect2 bounding;
 
-	public Chunk(Vector2 pos)
+	public Chunk()
 	{
-		Position = pos;
 		pixels = new Pixel[size * size];
+		
+		for (int i = 0; i < size * size; i++) {
+			pixels[i] = new Pixel();
+		}
+
 		_image = Image.Create(size,size,false,Image.Format.Rgba8);
 		Texture = ImageTexture.CreateFromImage(_image);
+		_bitmap = new Bitmap();
+		_bitmap.CreateFromImageAlpha(_image);
 		_imageUpdated = false;
 		Centered = false;
 		ShowBehindParent = true;
@@ -28,6 +36,15 @@ public partial class Chunk : Sprite2D
     {
 		AddToGroup("Chunks");
     }
+
+	public void Clear()
+	{
+		for (int i = 0; i < size * size; i++) {
+			pixels[i].Clear();
+		}
+		_image.Fill(Colors.Transparent);
+		_bitmap.CreateFromImageAlpha(_image);
+	}
 
 	private Vector2I GlobalToLocal(Vector2I global)
 	{
@@ -53,6 +70,13 @@ public partial class Chunk : Sprite2D
 
 		_image.SetPixel(local.X, local.Y, pixel.color);
 		_imageUpdated = true;
+
+		_bitmap.SetBitv(local, true);
+		numAirTiles--;
+
+		if (numAirTiles == 0) {
+			// Disable Collision
+		}
 	}
 
 	public void SetPixelLocal(Vector2I local, Pixel pixel)
@@ -67,7 +91,7 @@ public partial class Chunk : Sprite2D
 
     public override void _Draw()
     {
-		DrawRect(new Rect2(0,0,size,size), new Color(0.5f,0.5f,1.0f,0.3f), false, 2);
+		DrawRect(new Rect2(0,0,size,size), new Color(0.5f,0.5f,1.0f,0.1f), false, 2);
 		if (Engine.IsEditorHint()) {
 			// DrawRect(new Rect2(0,0,size,size), new Color(0.5f,0.5f,1.0f,0.3f), false, 5);
 		}
@@ -77,10 +101,8 @@ public partial class Chunk : Sprite2D
 		}
     }
 
-	public Array<Vector2[]> GetPolygons() {
-		Bitmap bitmap = new Bitmap();
-		bitmap.CreateFromImageAlpha(_image);
-
-		return bitmap.OpaqueToPolygons(new Rect2I(new Vector2I(), bitmap.GetSize()));
+	public Array<Vector2[]> GetPolygons() 
+	{
+		return _bitmap.OpaqueToPolygons(new Rect2I(new Vector2I(), _bitmap.GetSize()));
 	}
 }

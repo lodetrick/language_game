@@ -1,8 +1,9 @@
-[gd_scene load_steps=8 format=3 uid="uid://dpa3eop8ss6yn"]
+[gd_scene load_steps=9 format=3 uid="uid://dpa3eop8ss6yn"]
 
 [ext_resource type="Script" path="res://Engine/World.cs" id="1_6h0hb"]
 [ext_resource type="Script" path="res://Movement.gd" id="1_6x8mg"]
 [ext_resource type="Texture2D" uid="uid://b6ve48o2bpkqo" path="res://icon.svg" id="2_tbbup"]
+[ext_resource type="Script" path="res://Tools/MaterialTool.gd" id="4_xi3yg"]
 
 [sub_resource type="FastNoiseLite" id="FastNoiseLite_3ooah"]
 
@@ -39,3 +40,4 @@ texture = SubResource("NoiseTexture2D_7auni")
 [node name="Sprite2D2" type="Sprite2D" parent="."]
 visible = false
 texture = SubResource("CurveTexture_cjytf")
+script = ExtResource("4_xi3yg")

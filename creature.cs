@@ -1,6 +1,6 @@
-using Godot;
-using System;
+// using Godot;
+// using System;
 
-public partial class InformationCreature : InformationBody {
+// public partial class InformationCreature : InformationBody {
 
-}
+// }

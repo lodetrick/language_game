@@ -32,11 +32,12 @@ public static class Material {
 		Steam,
 		Iron,
 		Dust,
-		Clay,
+		Stone,
 		Gold,
 		Flesh,
 		Ice,
 		Slag,
+		Plant,
 		None,
 	}
 
@@ -56,8 +57,11 @@ public static class Material {
 	}
 
 	public abstract class MaterialTemplate {
-		public InformationBody _information { get; set; } // THIS BETTER BE A POINTER
-		public Material.Types MATERIAL_ID { get; private set; } // Identifying number, unique for each material type
+		public static Material.Types MATERIAL_ID { get; private set; } // Identifying number, unique for each material type
+
+		public Material.Types GetId() => MATERIAL_ID;
+		
+		private float _manaTotal;
 
 		// Flammability
 		public float GetCombustionManaNeeded() { return 1000; } // When the material starts to burn, total mana (not percentage)
