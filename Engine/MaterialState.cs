@@ -1,6 +1,6 @@
 using Godot;
 
-public abstract class MaterialState
+public abstract partial class MaterialState
 {
 	// private float _manaEarth, _manaWater, _manaAir, _manaFire, _manaTotal; // should be in pixel?
 

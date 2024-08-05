@@ -3,8 +3,6 @@ using Godot.Collections;
 
 public partial class World : Node2D
 {
-	public Godot.Collections.Dictionary<Vector2I,Chunk> chunkStorage;
-	public Array<Chunk> chunkPool;
 	private Vector2 _cameraSize;
 	private Camera2D _cam;
 	private Vector2I _currChunk;
@@ -12,16 +10,14 @@ public partial class World : Node2D
 
     public override void _Ready()
     {
-		chunkStorage = new Godot.Collections.Dictionary<Vector2I, Chunk>();
-		chunkPool = new Array<Chunk>();
 		_cameraSize = GetCanvasTransform().AffineInverse().BasisXform(GetViewportRect().Size) * 1.2f;
 		_cam = GetParent().GetNode<Camera2D>("Camera2D");
 		Vector2 cameraTopLeft = _cam.GetScreenCenterPosition() - _cameraSize / 2;
 		Vector2 cameraBottomRight = _cam.GetScreenCenterPosition() + _cameraSize / 2;
-		Vector2I chunkTopLeft = ToChunkPosition((Vector2I)cameraTopLeft);
-		Vector2I chunkBottomRight = ToChunkPosition((Vector2I)cameraBottomRight) + Vector2I.One;
+		Vector2I chunkTopLeft = Global.ToChunkPosition((Vector2I)cameraTopLeft);
+		Vector2I chunkBottomRight = Global.ToChunkPosition((Vector2I)cameraBottomRight) + Vector2I.One;
 		_loadedChunks = new Rect2I(0,0,0,0); // Empty Rectangle (none are loaded)
-		_currChunk = ToChunkPosition((Vector2I)_cam.GetScreenCenterPosition());
+		_currChunk = Global.ToChunkPosition((Vector2I)_cam.GetScreenCenterPosition());
 
 		// Rect2I chunksToLoad = new Rect2I(chunkTopLeft, chunkBottomRight - chunkTopLeft + Vector2I.One);
 		Rect2I chunksToLoad = new Rect2I(chunkTopLeft, 3, 3);
@@ -29,31 +25,6 @@ public partial class World : Node2D
 		
 		WorldGenerator.GenerateWorld(this, chunksToLoad);
     }
-
-    public static Vector2I ToChunkPosition(Vector2I pos)
-	{
-		return new Vector2I(Mathf.FloorToInt(pos.X / (float)Chunk.size), Mathf.FloorToInt(pos.Y / (float)Chunk.size));
-	}
-
-	// Global Coords
-	public void SetPixel(Vector2I pos, Pixel pixel)
-	{
-		Vector2I chunkPos = ToChunkPosition(pos);
-
-		if (chunkStorage.ContainsKey(chunkPos)) {
-			Chunk chunk = chunkStorage[chunkPos];
-			chunk.SetPixel(pos, pixel);
-		}
-	}
-
-	// Local Coords
-	public void SetPixel(Vector2I chunkPos, Vector2I pos, Pixel pixel)
-	{
-		if (chunkStorage.ContainsKey(chunkPos)) {
-			Chunk chunk = chunkStorage[chunkPos];
-			chunk.SetPixelLocal(pos, pixel);
-		}
-	}
 
 	private void LoadChunks(Rect2I newChunks)
 	{
@@ -70,10 +41,11 @@ public partial class World : Node2D
 				Vector2I position = new Vector2I(i, j) + _loadedChunks.Position;
 				if (!intersection.HasPoint(position)) {
 					// Remove Old Chunk
-					if (chunkStorage.ContainsKey(position)) {
-						chunkStorage[position].Hide();
-						chunkPool.Add(chunkStorage[position]);
-						chunkStorage.Remove(position);
+					Chunk chunk;
+					if (Global.chunkStorage.TryGetValue(position, out chunk)) {
+						chunk.Hide();
+						Global.chunkPool.Add(chunk);
+						Global.chunkStorage.Remove(position);
 					}
 				}
 			}
@@ -91,11 +63,11 @@ public partial class World : Node2D
 					// }
 					// else {
 						// GD.Print("Overriding chunk in pool");
-						Chunk chunk = chunkPool[0];
+						Chunk chunk = Global.chunkPool[0];
 						chunk.Clear();
 						if (WorldGenerator.GenerateChunk(ref chunk, position)) {
-							chunkPool.RemoveAt(0);
-							chunkStorage[position] = chunk;
+							Global.chunkPool.RemoveAt(0);
+							Global.chunkStorage[position] = chunk;
 							chunk.Show();
 						}
 					// }
@@ -103,15 +75,13 @@ public partial class World : Node2D
 			}
 		}
 
-		GD.Print(chunkPool.Count);
-
 		// Update Variables
 		_loadedChunks = newChunks;
 	}
 
     public override void _Process(double delta)
     {
-		Vector2I nextChunk = ToChunkPosition((Vector2I)_cam.GetScreenCenterPosition());
+		Vector2I nextChunk = Global.ToChunkPosition((Vector2I)_cam.GetScreenCenterPosition());
 
 		if (nextChunk != _currChunk) {
 			Vector2I diff = nextChunk - _currChunk;

@@ -1,4 +1,4 @@
-public class WaterMat : MaterialState
+public partial class WaterMat : MaterialState
 {
 	public override void ApplyHeat(ref Pixel p, float amount)
 	{
@@ -11,7 +11,7 @@ public class WaterMat : MaterialState
 	}
 }
 
-public class FireMat : MaterialState
+public partial class FireMat : MaterialState
 {
 	public override void ApplyHeat(ref Pixel p, float amount)
 	{
@@ -24,7 +24,7 @@ public class FireMat : MaterialState
 	}
 }
 
-public class EarthMat : MaterialState
+public partial class EarthMat : MaterialState
 {
 	public override void ApplyHeat(ref Pixel p, float amount)
 	{
@@ -37,7 +37,7 @@ public class EarthMat : MaterialState
 	}
 }
 
-public class AirMat : MaterialState
+public partial class AirMat : MaterialState
 {
 	public override void ApplyHeat(ref Pixel p, float amount)
 	{
@@ -50,7 +50,7 @@ public class AirMat : MaterialState
 	}
 }
 
-public class GlassMat : MaterialState
+public partial class GlassMat : MaterialState
 {
 	public override void ApplyHeat(ref Pixel p, float amount)
 	{
@@ -63,7 +63,7 @@ public class GlassMat : MaterialState
 	}
 }
 
-public class OilMat : MaterialState
+public partial class OilMat : MaterialState
 {
 	public override void ApplyHeat(ref Pixel p, float amount)
 	{
@@ -76,7 +76,7 @@ public class OilMat : MaterialState
 	}
 }
 
-public class WoodMat : MaterialState
+public partial class WoodMat : MaterialState
 {
 	public override void ApplyHeat(ref Pixel p, float amount)
 	{
@@ -89,7 +89,7 @@ public class WoodMat : MaterialState
 	}
 }
 
-public class SmokeMat : MaterialState
+public partial class SmokeMat : MaterialState
 {
 	public override void ApplyHeat(ref Pixel p, float amount)
 	{
@@ -102,7 +102,7 @@ public class SmokeMat : MaterialState
 	}
 }
 
-public class SteamMat : MaterialState
+public partial class SteamMat : MaterialState
 {
 	public override void ApplyHeat(ref Pixel p, float amount)
 	{
@@ -115,7 +115,7 @@ public class SteamMat : MaterialState
 	}
 }
 
-public class IronMat : MaterialState
+public partial class IronMat : MaterialState
 {
 	public override void ApplyHeat(ref Pixel p, float amount)
 	{
@@ -128,7 +128,7 @@ public class IronMat : MaterialState
 	}
 }
 
-public class DustMat : MaterialState
+public partial class DustMat : MaterialState
 {
 	public override void ApplyHeat(ref Pixel p, float amount)
 	{
@@ -141,7 +141,7 @@ public class DustMat : MaterialState
 	}
 }
 
-public class StoneMat : MaterialState
+public partial class StoneMat : MaterialState
 {
 	public override void ApplyHeat(ref Pixel p, float amount)
 	{
@@ -154,7 +154,7 @@ public class StoneMat : MaterialState
 	}
 }
 
-public class GoldMat : MaterialState
+public partial class GoldMat : MaterialState
 {
 	public override void ApplyHeat(ref Pixel p, float amount)
 	{
@@ -167,7 +167,7 @@ public class GoldMat : MaterialState
 	}
 }
 
-public class FleshMat : MaterialState
+public partial class FleshMat : MaterialState
 {
 	public override void ApplyHeat(ref Pixel p, float amount)
 	{
@@ -180,7 +180,7 @@ public class FleshMat : MaterialState
 	}
 }
 
-public class IceMat : MaterialState
+public partial class IceMat : MaterialState
 {
 	public override void ApplyHeat(ref Pixel p, float amount)
 	{
@@ -193,7 +193,7 @@ public class IceMat : MaterialState
 	}
 }
 
-public class SlagMat : MaterialState
+public partial class SlagMat : MaterialState
 {
 	public override void ApplyHeat(ref Pixel p, float amount)
 	{
@@ -206,7 +206,7 @@ public class SlagMat : MaterialState
 	}
 }
 
-public class PlantMat : MaterialState
+public partial class PlantMat : MaterialState
 {
 	public override void ApplyHeat(ref Pixel p, float amount)
 	{

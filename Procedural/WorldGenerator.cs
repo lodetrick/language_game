@@ -6,8 +6,6 @@ public partial class WorldGenerator
 {
 	private static FastNoiseLite _noise, _dispNoise;
 	private static RandomNumberGenerator _random, _randomX;
-
-	private static readonly MaterialState[] materialStates;
 	private static Curve rockFrequency;
 	public static int seed = 7842923;
 	public static int spacing = 5; // Spacing between recorded values of the heightmap
@@ -26,25 +24,6 @@ public partial class WorldGenerator
 		_random = new RandomNumberGenerator();
 		_randomX = new RandomNumberGenerator();
 		rockFrequency = GD.Load<Curve>("res://Procedural/RockFrequency.tres");
-
-		materialStates = new MaterialState[17];
-		materialStates[0] = new WaterMat();
-		materialStates[1] = new FireMat();
-		materialStates[2] = new EarthMat();
-		materialStates[3] = new AirMat();
-		materialStates[4] = new GlassMat();
-		materialStates[5] = new OilMat();
-		materialStates[6] = new WoodMat();
-		materialStates[7] = new SmokeMat();
-		materialStates[8] = new SteamMat();
-		materialStates[9] = new IronMat();
-		materialStates[10] = new DustMat();
-		materialStates[11] = new StoneMat();
-		materialStates[12] = new GoldMat();
-		materialStates[13] = new FleshMat();
-		materialStates[14] = new IceMat();
-		materialStates[15] = new SlagMat();
-		materialStates[16] = new PlantMat();
 	}
 
 	// public static int[] GenerateHeightmap(int seed, int left, int right)
@@ -150,7 +129,7 @@ public partial class WorldGenerator
 				Vector2I dir = (Vector2I)pos - Mathf.CeilToInt(currentWidth / 2) * trunkDir;
 				
 				for (int w = 0; w < currentWidth; w++) {
-					chunk.SetPixel(dir + w * trunkDir, new Pixel(Colors.Burlywood, materialStates[6]));
+					chunk.SetPixel(dir + w * trunkDir, new Pixel(Colors.Burlywood, Global.materialStates["Wood"]));
 				}
 
 				// After, increment the position
@@ -175,8 +154,6 @@ public partial class WorldGenerator
 
 		Array<Vector2> array = [new Vector2(0,0), new Vector2(3, -30), new Vector2(-3,-60), new Vector2(-10, -80)];
 
-		GenerateBranch(chunk, array, 5);
-
 		float[] surfaceLevel = GetSurfaceLevels(position.X, granularity);
 		_random.Seed = (ulong)(seed + position.X * 223 + position.Y);
 		_randomX.Seed = (ulong)(seed + position.X);
@@ -186,7 +163,7 @@ public partial class WorldGenerator
 			int subdivision = Mathf.FloorToInt(weight);
 			float surface = 500 * Mathf.Lerp(surfaceLevel[subdivision], surfaceLevel[subdivision + 1], weight - subdivision);
 
-			float randomNoiseX = (1 + _dispNoise.GetNoise1D(chunk.Position.X + i)) / 2;
+			float randomNoiseX = (1 + _dispNoise.GetNoise1D(chunk._pos.X + i)) / 2;
 
 			float randomX = _randomX.RandfRange(0,1);
 
@@ -197,19 +174,19 @@ public partial class WorldGenerator
 				float height = j + Chunk.size * position.Y;
 				float distance = height - surface;
 				float randomValue = _random.RandfRange(0,1);
-				float randomNoise = (1 + _dispNoise.GetNoise2D(chunk.Position.X + i, chunk.Position.Y + j)) / 2;
+				float randomNoise = (1 + _dispNoise.GetNoise2D(chunk._pos.X + i, chunk._pos.Y + j)) / 2;
 
 				if (distance > 0 && randomNoise > rockFrequency.SampleBaked(distance / 60)) {
-					Pixel p = new Pixel(Colors.SlateGray.Darkened(randomValue / 10), materialStates[11]);
+					Pixel p = new Pixel(Colors.SlateGray.Darkened(randomValue / 10), Global.materialStates["Stone"]);
 					chunk.SetPixelLocal(new Vector2I(i, j), p);
 				}
 				// TODO: Fix Grass generating under dirt (This succeeds but above that it doesn't) Probably fixed?
 				else if (grassPosition > distance && distance > grassPosition - grassHeight) {
-					Pixel p = new Pixel(Colors.ForestGreen.Lightened(randomX / 5), materialStates[16]);
+					Pixel p = new Pixel(Colors.ForestGreen.Lightened(randomX / 5), Global.materialStates["Plant"]);
 					chunk.SetPixelLocal(new Vector2I(i, j), p);
 				}
 				else if (distance > grassPosition) {
-					Pixel p = new Pixel(Colors.SaddleBrown.Lightened(randomValue / 10), materialStates[2]);
+					Pixel p = new Pixel(Colors.SaddleBrown.Lightened(randomValue / 10), Global.materialStates["Earth"]);
 					chunk.SetPixelLocal(new Vector2I(i, j), p);
 				}
 				// if (Mathf.Abs(distance) < 0.5f) {
@@ -218,12 +195,14 @@ public partial class WorldGenerator
 			}
 		}
 
+		GenerateBranch(chunk, array, 5);
+
 		if (!chunk._imageUpdated) {
 			// Chunk is only air, don't want to add it
 			return false;
 		}
 
-		chunk.Position = Chunk.size * position;
+		chunk.SetPos(Chunk.size * position);
 		
 		return true;
 	}
@@ -250,11 +229,11 @@ public partial class WorldGenerator
 
 				Chunk chunk = new Chunk();
 				if (GenerateChunk(ref chunk, chunkPos)) {
-					world.chunkStorage[chunkPos] = chunk;
+					Global.chunkStorage[chunkPos] = chunk;
 					world.AddChild(chunk);
 				}
 				else {
-					world.chunkPool.Add(chunk);
+					Global.chunkPool.Add(chunk);
 				}
 			}
 		}

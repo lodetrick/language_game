@@ -20,7 +20,7 @@ public partial class Pixel
 	public void Clear()
 	{
 		color = Colors.Transparent;
-		_currentMat = new AirMat();
+		_currentMat = Global.materialStates["Air"];
 	}
 
 	public void Replace(Color _color, MaterialState mat)

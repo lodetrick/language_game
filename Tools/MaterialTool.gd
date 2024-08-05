@@ -2,17 +2,17 @@ extends Node
 
 func _ready():
 	# call all the stuff
-	# list of classes
-	var materials: String = \
+	# list  of classes
+	var _materials: String = \
 "Water,Fire,Earth,Air,Glass,Oil,Wood,Smoke,Steam,Iron,Dust,Stone,Gold,Flesh,Ice,Slag,Plant"
 	#WriteMaterialClass(materials)
-	PrintMaterialStatics(materials)
+	#PrintMaterialStatics(_materials)
 
 func PrintMaterialStatics(materials: String):
 	var materialList = materials.split(",")
 	var string = ""
 	for i in range(len(materialList)):
-		string += "materialStates[%s] = new %sMat();\n" % [i, materialList[i]]
+		string += "materialStates.Add(\"%s\", new %sMat());\n" % [materialList[i], materialList[i]]
 	print(string)
 
 func WriteMaterialClass(materials: String):

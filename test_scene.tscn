@@ -41,3 +41,6 @@ texture = SubResource("NoiseTexture2D_7auni")
 visible = false
 texture = SubResource("CurveTexture_cjytf")
 script = ExtResource("4_xi3yg")
+
+[node name="StaticBody2D" type="StaticBody2D" parent="."]
+process_mode = 4
